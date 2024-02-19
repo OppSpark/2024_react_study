@@ -1,25 +1,25 @@
-import logo from './logo.svg';
 import './App.css';
 
 function App() {
+  const user = ['ㅎㅇ','456','789']
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div cla>
+      <User name={user[0]} />
+      <User name={user[1]} />
+      <User name={user[2]} />
     </div>
   );
 }
 
+function User(agrs){
+    return(
+    <div className="user" >
+      <ul className="userinfo">
+        <li><img src="../img/odung.png" /></li>
+        <li>{agrs.name}</li>
+      </ul>
+    </div>
+  );
+}
 export default App;

@@ -1,134 +1,222 @@
-import './App.css';
+import React, {
+    useState,
+    useEffect,
+    useCallback,
+    useRef,
+    useMemo,
+} from "react";
 
 function App() {
-  const user = ['ㅎㅇ','456','789'];
+    const [posts, setPosts] = useState([]);
+    const postId = useRef(0);
+    const addArticle = useCallback((title, body) => {
+        writePost({ title: title, body: body });
+        console.log({
+            id: postId.current++,
+            title: title,
+            body: body,
+            comment: [],
+        });
+    });
+    const removeArticle = useCallback((id) => {
+        deletePost(id);
+    });
+    const updateArticle = useCallback((id, title, body) => {
+        putPosts({ id: id, title: title, body: body });
+    });
+    const addComment = useCallback((id, title, body) => {
+        commentPost({ id: id, title: title, body: body });
+    });
 
-  const title = ['original','reverse','push','sort','filter','a'];
+    useEffect(() => {
+        fetchPosts();
+        document.title = `${posts.length}개 글 존재함`;
+    }, []);
 
-  const users = [
-    { name: 'esukmean', score: 100, flag:true },
-    { name: 'esm', score: 90, flag:true },
-    { name: 'Spark', score: 30, flag:false },
-    { name: 'hyeJi', score: 80, flag:true },
-    { name: 'Oppspark', score: 25 , flag:false },
-    { name: 'asdf1234', score: 40 , flag:true},
-    { name: 'Hello', score: 10, flag:false },
-  ];
+    const actions = useMemo(
+        () => ({
+            removeArticle: removeArticle,
+            updateArticle: updateArticle,
+            addComment: addComment,
+        }),
+        [removeArticle, updateArticle, addComment]
+    );
 
-  return (
-    <div>
-      <OriginalList name={title[0]} arr={users}  />
-      <Reverselist name={title[1]} arr={users}  />
-      <Pushlist name={title[2]} arr={[...title]} />
-      <Sortlist name={title[3]} arr={title} />
-      <Filterlist name={title[4]} arr={users} />
+    const deletePost = (id) => {
+        fetch(`http://cs-dept.esm.kr/${id}`, {
+            method: "DELETE",
+        }).then();
+    };
 
+    const putPosts = (posts) => {
+        fetch(`http://cs-dept.esm.kr/${posts.id}`, {
+            method: "PUT",
+            headers: {
+                "content-type": "application/x-www-form-urlencoded",
+            },
+            body: upload(posts),
+        });
+    };
 
-      {users[1].score>50 ?
-      <Filterlist name={title[4]} arr={users} /> :
-      <Pushlist name={title[2]} arr={[...title]} />}
+    const fetchPosts = () => {
+        fetch("http://cs-dept.esm.kr", {
+            method: "GET",
+        })
+            .then((res) => res.json())
+            .then((posts) => {
+                setPosts(posts);
+            });
+    };
 
-      {/* <User name={user[0]} />
-      <User name={user[1]} />
-      <User name={user[2]} /> */}
-    </div>
-  );
+    const writePost = (newPost) => {
+        fetch("http://cs-dept.esm.kr", {
+            method: "POST",
+            headers: {
+                "content-type": "application/x-www-form-urlencoded",
+            },
+            body: upload(newPost),
+        }).then();
+    };
+
+    const commentPost = (newPost) => {
+        fetch("http://cs-dept.esm.kr", {
+            method: "POST",
+            headers: {
+                "content-type": "application/x-www-form-urlencoded",
+            },
+            body: upload(newPost),
+        }).then();
+    };
+
+    return (
+        <div>
+            <Input addArticle={addArticle} fetchPosts={fetchPosts} />
+            <Wall posts={posts} actions={actions} />
+        </div>
+    );
 }
 
-function OriginalList(args){
-  return (
-    <div>
-      <h1>{args.name}</h1>
-      {args.arr.map(v =>(
-        <div>{v.name}</div>
-      ))}
-    </div>
-  );
+function upload(data) {
+    var formbody = [];
+    for (var property in data) {
+        var encodeKey = encodeURIComponent(property);
+        var encodeValue = encodeURIComponent(data[property]);
+        formbody.push(encodeKey + "=" + encodeValue);
+    }
+    formbody = formbody.join("&");
+
+    return formbody;
 }
 
-function Reverselist(args){
-  return(
-    <div>
-      <h1>{args.name}</h1>
-      {args.arr.toReversed().map(v =>(
-        <div>{v.name}</div>
-      ))}
-    </div>
-  );
+function Input(props) {
+    const { addArticle } = props;
+    const [title, setTitle] = useState("");
+    const [body, setBody] = useState("");
+
+    const handleSubmit = useCallback(() => {
+        addArticle(title, body);
+
+        setTitle("");
+        setBody("");
+    }, [addArticle, title, body]);
+
+    return (
+        <div>
+            <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+            />
+            <br />
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} />
+            <button Click={handleSubmit}>글 추가</button>
+        </div>
+    );
+}
+function Wall(props) {
+    const { posts, actions } = props;
+
+    return (
+        <div>
+            {posts.map((post) => (
+                <Post key={post.id} post={post} actions={actions} />
+            ))}
+        </div>
+    );
+}
+function Post(props) {
+    const { post, actions } = props;
+    const [isModifyMode, setIsModifyMode] = useState(false);
+    const [editStr, setEditStr] = useState(post.body);
+
+    return (
+        <div>
+            {}
+            <h1 className="title">{post.title}</h1>
+            {!isModifyMode ? (
+                <p className="SNScontent">{post.body}</p>
+            ) : (
+                <textarea
+                    className="textbox"
+                    onChange={(e) => setEditStr(e.target.value)}
+                >
+                    {editStr}
+                </textarea>
+            )}
+            <button
+                className="delbtns"
+                onClick={() => actions.removeArticle(post.id)}
+            >
+                삭제
+            </button>
+            {!isModifyMode ? (
+                <button
+                    className="putbtns"
+                    onClick={() => setIsModifyMode(true)}
+                >
+                    수정
+                </button>
+            ) : (
+                <button
+                    className="putbtns"
+                    onClick={() => {
+                        actions.updateArticle(post.id, post.title, editStr);
+                        setIsModifyMode(false);
+                    }}
+                >
+                    수정 완료
+                </button>
+            )}
+            <CommentBox post={post} actions={actions} />
+        </div>
+    );
 }
 
-function Pushlist(args){
+function CommentBox(props) {
+    const { post, actions } = props;
+    const [comment, setComment] = useState("");
 
-  args.arr.push(22)
+    const handleSubmit = useCallback(() => {
+        actions.addComment(post.id, comment);
+        setComment("");
+    }, [actions, post.id, comment]);
 
-  return(
-    <div>
-      <h1>{args.name}</h1>
-      {args.arr.map(v =>(
-        <div>{v}</div>
-      ))}
-    </div>
-  )
-}
-
-function Sortlist(args){
-  const arr2 = []
-  args.arr.map(v =>(
-    arr2.push(v)
-  ))
-
-  return(
-    <div>
-      <h1>{args.name}</h1>
-      {arr2.sort().map(v =>(
-        <div>{v}</div>
-      ))
-      }
-    </div>
-  )
-}
-
-function Filterlist(args){
-
-  return(
-    <div>
-      <h1>{args.name}</h1>
-      {args.arr.filter(s => s.score > 50).map(v =>(
-
-        <div>{v.score}</div>
-      ))
-      }
-    </div>
-
-  )
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function User(args){
-    return(
-    <div className="user" >
-      <ul className="userinfo">
-        <li><img src="../img/odung.png" /></li>
-        <li>{args.name}</li>
-      </ul>
-    </div>
-  );
+    return (
+        <div>
+            <input
+                className="snsComment"
+                type="text"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+            />
+            <button className="snsCommnetbtn" onClick={handleSubmit}>
+                댓글 추가
+            </button>
+            {post.comment.map((comment) => (
+                <div>{comment}</div>
+            ))}
+        </div>
+    );
 }
 
 export default App;

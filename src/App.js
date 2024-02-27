@@ -2,6 +2,14 @@ import "./App.css";
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { usernameChange, navigatorChange } from "./redux/store";
+import {
+    Route,
+    BrowserRouter,
+    useParams,
+    Routes,
+    Link,
+    Outlet
+} from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 function encodeWWWFormUrlencoded(data) {
@@ -45,7 +53,6 @@ function App() {
             method: "PUT",
             headers: {
                 "content-type": "application/x-www-form-urlencoded",
-            
             },
             body: encodeWWWFormUrlencoded({
                 id,
@@ -63,20 +70,38 @@ function App() {
     return (
         <div>
             <div class="container">
-            <Navigator />
-            <UserBox />
-                <hr />
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/" element={<Navigator />}>
+                            <Route
+                                path="/"
+                                element={<PostTitle posts={posts}></PostTitle>}
+                            />
+                            <Route
+                                path="/write"
+                                element={<Input onAddPost={addPost} />}
+                            />
+
+                            <Route
+                                path="/post"
+                                element={
+                                    <Wall
+                                        posts={posts}
+                                        onDeletePost={deletePost}
+                                        onUpdatePost={updatePost}
+                                    />
+                                }
+                            />
+                            <Route
+                                path="/post/:id"
+                                element={
+                                    <PostDetail onDeletePost={deletePost} />
+                                }
+                            />
+                        </Route>
+                    </Routes>
+                </BrowserRouter>
             </div>
-            <hr />
-            <Router>
-                <Input onAddPost={addPost} />
-                <hr />
-                <Wall
-                    posts={posts}
-                    onDeletePost={deletePost}
-                    onUpdatePost={updatePost}
-                />
-            </Router>
         </div>
     );
 }
@@ -91,25 +116,23 @@ function Navigator() {
     return (
         <div class="row g-3 align-items-center">
             <div class="col-auto">
-                <button
-                    class="btn btn-primary"
-                    onClick={() => changeNavigator("home")}
-                >
-                    홈
+                <button class="btn btn-warning">
+                    <Link class="btn btn-warning" to="/">
+                        Home
+                    </Link>
                 </button>
-                <button
-                    class="btn btn-warning"
-                    onClick={() => changeNavigator("가나다")}
-                >
-                    가나다
+                <button class="btn btn-warning">
+                    <Link class="btn btn-warning" to="/write">
+                        Write
+                    </Link>
                 </button>
-                <button
-                    class="btn btn-warning"
-                    onClick={() => changeNavigator("게시글 1")}
-                >
-                    게시글 1
+                <button class="btn btn-warning">
+                    <Link class="btn btn-warning" to="/post">
+                        Post
+                    </Link>
                 </button>
             </div>
+            <Outlet />
         </div>
     );
 }
@@ -122,6 +145,51 @@ function Router({ children }) {
     }
 
     return <div>router - {path}</div>;
+}
+
+function PostDetail({ idx, onDeletePost }) {
+    const { id } = useParams();
+    const [post, setPosts] = useState({ title: "...", body: "..." });
+
+    const handleDelete = () => {
+        onDeletePost(post.id);
+        window.location.href = "/";
+    };
+
+    useEffect(() => {
+        fetch(`http://cs-dept.esm.kr/${id}`)
+            .then((res) => res.json())
+            .then((post) => {
+                setPosts(post);
+            });
+    }, [id]);
+    return (
+        <div class="card mb-2">
+            <div class="card-body">
+                <h1 class="card-title mb-4"> 제목 :{post.title}</h1>
+                <p>내용 : {post.body}</p>
+            </div>
+            <button class="btn btn-danger" onClick={handleDelete}>
+                삭제
+            </button>
+        </div>
+    );
+}
+
+function PostTitle({ posts }) {
+    return (
+        <div>
+            <ul>
+                {posts.map((posts) => (
+                    <li>
+                        <Link to={`/post/${posts.id}`}>
+                            <h3>{posts.title}</h3>
+                        </Link>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
 }
 
 function UserBox() {
@@ -170,6 +238,7 @@ function Input({ onAddPost }) {
         onAddPost(newPost);
         setTitle("");
         setBody("");
+        window.location.href = "/";
     };
     return (
         <div class="container">
@@ -251,7 +320,6 @@ function Post({ post, onDeletePost, onUpdatePost }) {
                         수정 완료
                     </button>
                 )}
-                <UserBox />
             </div>
         </div>
     );
